@@ -25,6 +25,7 @@ student: student.S test_harness.c # build 'student' and verify that it has no .t
 	arm-linux-androideabi-gcc practice_arm.o practice_thumb.o -fpic -Wl,-pie -march=armv7-a -g -mfpu=neon -mfloat-abi=softfp -o student $^
 	@./check_textrel.sh student || (echo "FATAL: .text relocations present."; rm student; exit 1)
 	xxd student > student_hexdump
+	arm-linux-androideabi-gcc test.c -fpic -Wl,-pie -march=armv7-a -g -mfpu=neon -mfloat-abi=softfp -o ptest
 	@echo "BUILD SUCCESS" # If the script makes it to here the build was successful
 
 install: build # put 'student' on connected phone

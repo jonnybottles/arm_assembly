@@ -3,6 +3,8 @@
 */
 
 #include <asm/unistd.h>
+#incude "port.h"
+
 
 .syntax unified
 
@@ -72,25 +74,43 @@
 .global LabSize9_2
 .global LabSize9_3
 
-
-
 .arm
 
 /********************************************************
 *    Lab 0                                  *
 *       Hello, World                                    *
 *********************************************************/
+.section     .text
+
+// HelloWorld:
+//     push {r0-r12, lr}
+//     blx thum_fart
+
+// thum_fart:
+// .thumb
+//     mov r0, #0xffffffff
+
+//     pop {r0-r12, pc}
+// .align 4
 
 HelloWorld:
-     push {r0-r12, lr}
-     adr r0, message
-     mov r1, #1
-     bl printf
-     pop {r0-r12, pc}
+    push {r0-r12, lr}
 
+    mov r0, #1
+    mov r1, #2
+    mov r2, #3
+    add r0, r1, r2, lsl#2
+
+    adr r0, message @.text relocation problem when using LDR here
+    #ldr r0, =message @THIS CAUSES A TEXT RELOCAITON!
+    mov r1, #1
+    bl printf
+    pop {r0-r12, pc}
+.align 4
 message:
     .asciz "Hello ARM World %d!\n"
 .align 4
+
 /********************************************************
 *    Lab 1_1                                  *
 *    move the values 256, 257, and 0xffffffff into   *
@@ -103,8 +123,8 @@ Lab1_1:
 
         /**** Your code below here ****/
         mov r0, #256
-        movt r1, #257
-        mov r2,  #0xffffffff
+        movw r1, #257
+        mov r2, #-1
         /**** Your code above here ****/
 
         pop {r5-r11, pc}
@@ -123,24 +143,9 @@ Lab1_2:
         push {r2, r4-r8, r10-r11, lr }
 
     /**** Your code below here ****/
-    // mov r0, 1
-    // mov r1, 2
-    // mov r2, 0
-
     mov r2, r0
-    // r0 = 1
-    // r1 = 2
-    // r2 = 1
-
     mov r0, r1
-    // r0 = 2
-    // r1 = 2
-    // r2 = 1
     mov r1, r2
-    // r0 = 2
-    // r1 = 1
-    // r2 = 1
-
     /**** Your code above here ****/
 
         pop {r2, r4-r8, r10-r11, pc}
@@ -149,24 +154,24 @@ LabSize1_2:
     .long . - Lab1_2 - 8
 
 /********************************************************
-*    Lab 1_3                        *
-*    Perform this action:                *
-*    r0 = r1 + r2 + 0x42                *
-*    REGISTERS: r0, r1, r2                *
-*    PRESERVE: do not use any other registers    *
-*                            *
-*    NOTE: If you didn’t complete all of the MOV’s   *
+*    Lab 1_3                                            *
+*    Perform this action:                               *
+*    r0 = r1 + r2 + 0x42                                *
+*    REGISTERS: r0, r1, r2                              *
+*    PRESERVE: do not use any other registers           *
+*                                                       *
+*    NOTE: If you didn’t complete all of the MOV’s      *
 *             in Lab 1_1, consider going back after     *
-*             this lab and using a combination of     *
-*          instructions to accomplish the goal    *
+*             this lab and using a combination of       *
+*          instructions to accomplish the goal          *
 *********************************************************/
 
 Lab1_3:
     push {r2, r3, r5, lr}
 
     /**** Your code below here ****/
-    ADD r0, r1, #0x42
-    ADD r0, r0, r2
+        add r0, r1, r2
+        add r0, #0x42
     /**** Your code above here ****/
 
     pop {r2, r3, r5, pc}
@@ -183,6 +188,9 @@ LabSize1_3:
 Lab2_1:
     push {r2, r3, r4, r5, lr}
     /**** Your code below here ****/
+        add r0, r0
+        add r0, r0
+        eor r0, r0, r1
     /**** Your code above here ****/
     pop {r2-r5, pc}
 
@@ -198,6 +206,7 @@ Lab2_2:
     push {r2-r5, lr}
 
     /**** Your code below here ****/
+        lsr r1, r0, #24
     /**** Your code above here ****/
 
     pop {r2-r5, pc}
@@ -214,6 +223,21 @@ Lab2_3:
     push {r1-r5, lr}
 
     /**** Your code below here ****/
+        eor r1, r1
+        eor r2, r2
+        eor r3, r3
+        and r3, r0, #0xff
+        lsr r0, #8
+        and r2, r0, #0xff
+        lsr r0, #8
+        and r1, r0, #0xff
+        lsr r0, #8
+        lsl r1, #8
+        lsl r2, #16
+        lsl r3, #24
+        orr r0, r3
+        orr r0, r2
+        orr r0, r1
     /**** Your code above here ****/
 
     pop {r1-r5, pc}
@@ -229,12 +253,24 @@ Lab2_4:
     push {r1-r5, lr}
 
     /**** Your code below here ****/
+        eor r1, r1
+        add r1, #0x41
+        lsl r1, #8
+        add r1, #0x41
+        lsl r1, #8
+        add r1, #0x41
+        lsl r1, #8
+        add r1, #0x41
+
+        movw  r1, #0x4141
+        movt r1, #0x4141
     /**** Your code above here ****/
 
         bl Lab2_1
     pop {r1-r5, pc}
 LabSize2_4:
     .long . - Lab2_4 - 8
+
 /********************************************************************************
 *    Lab 3_1                                    *
 *    Perform this action:                            *
@@ -244,6 +280,19 @@ Lab3_1:
     push {lr}
 
     /**** Your code below here ****/
+    mov r1, #2
+    cmp r0, #42
+        beq next_3_1
+        mov r1, #1
+
+next_3_1:
+        mov r3, #1
+        cmp r2, #42
+        beq done_3_1
+        mov r3, #2
+
+done_3_1:
+
     /**** Your code above here ****/
 
     pop {pc}
@@ -261,6 +310,29 @@ Lab3_2:
     push {lr}
 
     /**** Your code below here ****/
+        cmp r0, #0
+        beq ret_r0_3_2
+        cmp r1, #0
+        beq ret_r1_3_2
+        cmp r1, #1
+        beq ret_r0_3_2
+        cmp r0, #1
+        beq ret_r1_3_2
+        sub r1, #1
+        mov r2, r0
+
+mul_3_2:
+        add r0, r2
+        sub r1, #1
+        cmp r1, #0
+        bne mul_3_2
+    b done_3_2
+
+ret_r1_3_2:
+    mov r0, r1
+ret_r0_3_2:
+
+done_3_2:
     /**** Your code above here ****/
 
     pop {pc}
@@ -277,6 +349,14 @@ Lab3_3:
 
     push {lr}
     /**** Your code below here ****/
+        mov r1, #1
+        cmp r0, #42
+        addeq r1, #1
+
+        mov r3, #1
+        cmp r2, #42
+        addne r3, #1
+
     /**** Your code above here ****/
     pop {pc}
 LabSize3_3:
@@ -293,6 +373,10 @@ Lab3_4:
 
     push {lr}
     /**** Your code below here ****/
+    mrs r0, cpsr
+    mov r1, #0xffffffff
+    eor r0, r1
+    //msr cpsr_cxsf, r0
     /**** Your code above here ****/
     pop {pc}
 LabSize3_4:
@@ -305,27 +389,53 @@ Lab4_1:
     push {lr}
 
     /**** Your code below here ****/
+        mul r0, r0, r1
     /**** Your code above here ****/
 
     pop {pc}
 LabSize4_1:
     .long . - Lab4_1 - 8
 /********************************************************************************
-*    Lab 4_2                                                                    *
-*    Perform this action:                                                       *
-*    Divide r0 by r1 with the result in r0 - this is integer division           *
-*    Example:  12/5 = 2                                                         *
-*    you do not need to check for division by 0. You are not using UDIV/SDIV    *
+*    Lab 4_2                                    *
+*    Perform this action:                            *
+*    Divide r0 by r1 with the result in r0 - this is integer division    *
+*    Example:  12/5 = 2                               *
+*    you do not need to check for division by 0                  *
 *********************************************************************************/
 Lab4_2:
-    stmfd sp!, {r1-r12, lr}
+     stmfd sp!, {r1-r12, lr}
+ 
+     /**** Your code below here ****/
+     cmp r0, r1
+ 
+# r1 is larger... set to zero and return
+     movmi r0, #0
+     bmi done42
 
-    /**** Your code below here ****/
+# r0 == r1... ans is 1, set and return    
+     moveq r0, #1
+     beq done42
+
+# general case... repeatedly subtract and accumulate answer
+     mov r2, r0
+     mov r0, #0
+
+top42:
+     sub r2, r2, r1     @ subtract r1 from r2
+     cmp r2, #0
+     addge r0, r0, #1   @ still more to go.. so add 1
+     bge top42          @ and jump back to top .. otherwise fall through to done
+
+done42:
+
     /**** Your code above here ****/
 
     ldmfd sp!, {r1-r12, pc}
+
 LabSize4_2:
     .long . - Lab4_2 - 8
+
+
 /****************************************************************************************
 *    Lab 5_1                                        *
 *    swap r0 and r1 using only those registers and the memory pointed to by r3    *
@@ -334,6 +444,9 @@ Lab5_1:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+        str r0, [r3]
+        mov r0, r1
+        ldr r1, [r3]
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -348,6 +461,8 @@ Lab5_2:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+    ldrb r2, [r1]
+    strb r2, [r0]
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -362,6 +477,13 @@ Lab5_3:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+        eor r1, r1
+
+loop_5_3:
+        strb r1, [r0, r1]
+        add r1, #1
+        cmp r1, #64
+        bne loop_5_3
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -369,16 +491,35 @@ LabSize5_3:
     .long . - Lab5_3 - 8
 /********************************************************************************************************
 *    Implement strncpy with a small twist - Place the size of the string into the first byte of    *
-*    the destination buffer                                        *
+*    the destination buffer. Note that the size of the string and the size of the buffer may be different *
 *    - Destination will be in r0                                    *
 *    - Source will be in r1                                        *
-*    - Size of R1 will be in r2.                                    *
+*    - Buffer size of buffer pointed to by r0 will be in r2.                                    *
 *    Remember to only use the instructions you have been provided thus far                *
 *********************************************************************************************************/
 Lab5_4:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+    push {r3}
+    eor r3, r3
+    add r0, #1
+
+loop_5_4:
+    cmp r2, #0
+    beq done_5_4
+    ldrb r4, [r1, r3]
+    strb r4, [r0, r3]
+    cmp r4, #0
+    beq done_5_4
+    add r3, #1
+    sub r2, #1
+    b loop_5_4
+
+done_5_4:
+    sub r0, #1
+    strb r3, [r0]
+    pop {r3}
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -397,6 +538,10 @@ Lab5_5:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+    setend be
+    ldr r0, [r1]
+    setend le
+    str r0, [r1]
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -412,6 +557,17 @@ Lab5_6:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+    push {r0, r1}
+
+loop_5_6:
+    ldrb r4, [r1], #1
+    strb r4, [r0], #1
+    cmp r4, #0
+    beq done_5_6
+    b loop_5_6
+
+done_5_6:
+    pop {r0, r1}
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -430,6 +586,15 @@ Lab5_7:
     stmfd sp!, {r0-r12, lr}
 
     /**** Your code below here ****/
+loop_5_7:
+    cmp r2, #0
+    beq done_5_7
+    ldmia r1!, {r3-r12}
+    stmia r0!, {r3-r12}
+    sub r2, #40 
+    b loop_5_7
+
+done_5_7:
     /**** Your code above here ****/
 
     ldmfd sp!, {r0-r12, pc}
@@ -446,6 +611,26 @@ Lab5_8:
     stmfd sp!, {r0-r12, lr}
 
     /**** Your code below here ****/
+check_size_5_8:
+    cmp r2, #40
+    bge loop_5_8
+    b finish_up_5_8
+
+loop_5_8:
+    ldmia r1!, {r3-r12}
+    stmia r0!, {r3-r12}
+    sub r2, #40
+    b check_size_5_8
+
+finish_up_5_8:
+    cmp r2, #0
+    beq done_5_8
+    ldrb r3, [r1], #1
+    strb r3, [r0], #1
+    sub r2, #1
+    b finish_up_5_8
+
+done_5_8:
     /**** Your code above here ****/
 
     ldmfd sp!, {r0-r12, pc}
@@ -460,6 +645,9 @@ Lab6_1:
     stmfd sp!, {r4-r12, lr}
 
     /**** Your code below here ****/
+    push {r0, r1} 
+    pop {r1}
+    pop {r0}
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -474,6 +662,11 @@ LabSize6_1:
 Lab6_2:
     stmfd sp!, {r4-r12, lr}
     /**** Your code below here ****/
+    push {r0-r12}
+    pop {r0}
+    pop {r2}
+    pop {r1}
+    pop {r3-r12}
     /**** Your code above here ****/
 
     ldmfd sp!, {r4-r12, pc}
@@ -488,6 +681,7 @@ LabSize6_2:
 Lab6_3:
 
     /**** Your code below here ****/
+    add sp, #0x100
     /**** Your code above here ****/
     mov pc, lr
 LabSize6_3:
